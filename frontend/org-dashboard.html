@@ -1,0 +1,59 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Organizer Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/style.css"></head>
+<body class="bg-gray-50">
+<script src="assets/js/auth.js"></script>
+<script>requireRole('organizer','admin'); renderNavbar();</script>
+<main class="min-h-[75vh]">
+<div class="max-w-4xl mx-auto p-6">
+<h1 class="text-3xl font-bold mb-6">Organizer Dashboard</h1>
+<section class="bg-white p-6 rounded-2xl shadow mb-8">
+  <h2 class="text-2xl font-semibold mb-4">Create Event</h2>
+  <form id="evtForm" class="grid grid-cols-2 gap-4">
+    <input class="border rounded p-3 col-span-2" name="title" placeholder="Title" required>
+    <input class="border rounded p-3 col-span-2" name="description" placeholder="Description" required>
+    <input class="border rounded p-3" name="date" type="datetime-local" required>
+    <input class="border rounded p-3" name="city" placeholder="City" required>
+    <input class="border rounded p-3" name="address" placeholder="Address" required>
+    <input class="border rounded p-3" name="tags" placeholder="tags comma separated">
+    <input class="border rounded p-3" name="capacity" type="number" placeholder="capacity" value="20">
+    <div class="col-span-2">
+      <button class="bg-blue-600 text-white rounded-lg px-6 py-3 text-base" type="submit">Create</button>
+    </div>
+  </form>
+  <p class="text-sm text-slate-500 mt-3">Use comma separated tags like “environment,education”.</p>
+</section>
+<section class="bg-white p-6 rounded-2xl shadow">
+  <h2 class="text-2xl font-semibold mb-4">Your Events</h2>
+  <ul id="list" class="space-y-3"></ul>
+  </section>
+</div>
+</main>
+<script src="assets/js/api.js"></script>
+<script>
+async function load(){
+  const events = await apiFetch('/api/events');
+  list.innerHTML = events.map(e=>`<li class="border rounded p-3 flex items-center justify-between">
+    <div><b>${e.title}</b> - ${new Date(e.date).toLocaleString()}</div>
+    <div class="space-x-2">
+      <button class="px-2 py-1 bg-gray-200 rounded" onclick=\"viewApps('${e.id}')\">Applications</button>
+    </div>
+  </li>`).join('');
+}
+async function viewApps(eventId){
+  const apps = await apiFetch('/api/applications/event/'+eventId);
+  alert(apps.map(a=>a.volunteerId+': '+a.status).join('\n'));
+}
+
+evtForm.onsubmit = async (e)=>{
+  e.preventDefault();
+  const fd = new FormData(evtForm); const body={
+    title: fd.get('title'), description: fd.get('description'), date: new Date(fd.get('date')).toISOString(),
+    location: {city: fd.get('city'), address: fd.get('address')}, tags: (fd.get('tags')||'').split(',').filter(Boolean), capacity: parseInt(fd.get('capacity')||'20')
+  };
+  try{ await apiFetch('/api/events',{method:'POST', body: JSON.stringify(body)}); evtForm.reset(); load(); }catch(err){ if(err.status===401) location.href='/frontend/login.html'; }
+};
+load();
+</script>
+</body></html>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="40" viewBox="0 0 160 40" role="img" aria-label="Senimen logo">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+  <rect rx="8" width="40" height="40" fill="url(#g)"/>
+  <g fill="#fff" transform="translate(8,8)">
+    <circle cx="8" cy="8" r="4"/>
+    <path d="M2 20q6-8 12 0" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </g>
+  <text x="52" y="26" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#0f172a">Senimen</text>
+</svg>

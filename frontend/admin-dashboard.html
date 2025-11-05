@@ -1,0 +1,123 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/style.css"></head>
+<body class="bg-gray-50">
+<script src="assets/js/auth.js"></script>
+<script>requireRole('admin'); renderNavbar();</script>
+<main class="min-h-[75vh]">
+<div class="max-w-6xl mx-auto p-6">
+<h1 class="text-3xl font-bold mb-6">Admin Dashboard</h1>
+
+<section class="bg-white rounded-2xl shadow p-6 mb-6">
+  <h2 class="text-2xl font-semibold mb-5">Overview</h2>
+  <div id="kpis" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+</section>
+
+<div class="grid md:grid-cols-2 gap-6">
+  <section class="bg-white rounded-2xl shadow p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-2xl font-semibold">Users</h2>
+    </div>
+    <ul id="users" class="divide-y"></ul>
+  </section>
+  <section class="bg-white rounded-2xl shadow p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-2xl font-semibold">Events</h2>
+    </div>
+    <form id="adminEventForm" class="grid grid-cols-2 gap-3 mb-4">
+      <input class="border rounded p-3 col-span-2" name="title" placeholder="Title" required>
+      <input class="border rounded p-3 col-span-2" name="description" placeholder="Description" required>
+      <input class="border rounded p-3" name="date" type="datetime-local" required>
+      <input class="border rounded p-3" name="city" placeholder="City" required>
+      <input class="border rounded p-3" name="address" placeholder="Address" required>
+      <input class="border rounded p-3" name="tags" placeholder="tags comma separated">
+      <input class="border rounded p-3" name="capacity" type="number" placeholder="capacity" value="20">
+      <div class="col-span-2">
+        <button class="bg-blue-600 text-white rounded-lg px-5 py-3 text-base" type="submit">Create Event</button>
+      </div>
+    </form>
+    <ul id="events" class="divide-y"></ul>
+  </section>
+  </div>
+</div>
+</main>
+<script src="assets/js/api.js"></script>
+<script>
+async function loadStats(){
+  try{
+    const s = await apiFetch('/api/admin/stats');
+    kpis.innerHTML = `
+      <div class="rounded-xl border p-4"><div class="text-sm text-slate-600">Total Users</div><div class="text-3xl font-bold">${s.totalUsers||0}</div></div>
+      <div class="rounded-xl border p-4"><div class="text-sm text-slate-600">Volunteers</div><div class="text-3xl font-bold">${s.volunteersCount||0}</div></div>
+      <div class="rounded-xl border p-4"><div class="text-sm text-slate-600">Events</div><div class="text-3xl font-bold">${s.totalEvents||0}</div></div>
+      <div class="rounded-xl border p-4"><div class="text-sm text-slate-600">Applications</div><div class="text-3xl font-bold">${s.totalApplications||0}</div></div>`;
+  }catch(e){ if(e.status===401) location.href='/frontend/login.html'; }
+}
+
+async function loadUsers(){
+  try{
+    const list = await apiFetch('/api/admin/users');
+    users.innerHTML = list.map(u=>`<li class='py-3 flex items-center justify-between'>
+      <div>
+        <div class='font-medium'>${u.name}</div>
+        <div class='text-sm text-gray-500'>${u.email}</div>
+      </div>
+      <div class='flex items-center space-x-2'>
+        <select class='border rounded p-1 text-sm' onchange="updateRole('${u.id}', this.value)">
+          <option ${u.role==='volunteer'?'selected':''} value='volunteer'>volunteer</option>
+          <option ${u.role==='organizer'?'selected':''} value='organizer'>organizer</option>
+          <option ${u.role==='admin'?'selected':''} value='admin'>admin</option>
+        </select>
+        <button class='bg-gray-800 text-white rounded px-3 py-1' onclick="saveUser('${u.id}')">Save</button>
+        <button class='bg-red-600 text-white rounded px-3 py-1' onclick="delUser('${u.id}')">Delete</button>
+      </div>
+    </li>`).join('');
+  }catch(e){}
+}
+
+async function loadEvents(){
+  try{
+    const list = await apiFetch('/api/admin/events');
+    events.innerHTML = list.map(ev=>`<li class='py-3 flex items-center justify-between'>
+      <div>
+        <div class='font-medium'>${ev.title}</div>
+        <div class='text-sm text-gray-500'>${new Date(ev.date).toLocaleString()} • ${ev.location?.city||''}</div>
+      </div>
+      <div class='flex items-center space-x-2'>
+        <button class='bg-red-600 text-white rounded px-3 py-1' onclick="delEvent('${ev.id}')">Delete</button>
+      </div>
+    </li>`).join('');
+  }catch(e){}
+}
+
+async function delUser(id){ if(!confirm('Delete user?')) return; await apiFetch('/api/admin/users/'+id,{method:'DELETE'}); loadUsers(); loadStats(); }
+async function delEvent(id){ if(!confirm('Delete event?')) return; await apiFetch('/api/admin/events/'+id,{method:'DELETE'}); loadEvents(); }
+let roleChanges = {};
+function updateRole(id, role){ roleChanges[id] = role; }
+async function saveUser(id){
+  const list = await apiFetch('/api/admin/users');
+  const u = list.find(x=>x.id===id);
+  if(!u) return;
+  const role = roleChanges[id] || u.role;
+  await apiFetch('/api/admin/users',{method:'POST', body: JSON.stringify({...u, role})});
+  delete roleChanges[id];
+  await loadUsers(); await loadStats();
+}
+
+const adminEventForm = document.getElementById('adminEventForm');
+adminEventForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const fd = new FormData(adminEventForm);
+  const body={
+    title: fd.get('title'), description: fd.get('description'), date: new Date(fd.get('date')).toISOString(),
+    location: {city: fd.get('city'), address: fd.get('address')}, tags: (fd.get('tags')||'').split(',').filter(Boolean), capacity: parseInt(fd.get('capacity')||'20')
+  };
+  await apiFetch('/api/events',{method:'POST', body: JSON.stringify(body)});
+  adminEventForm.reset();
+  await loadEvents(); await loadStats();
+});
+
+(async function(){ await loadStats(); await loadUsers(); await loadEvents(); })();
+</script>
+</body></html>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Profile - Senimen</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/style.css"></head>
+<body class="bg-gray-50">
+<script src="assets/js/auth.js"></script>
+<script>requireAuth(); renderNavbar();</script>
+<main class="min-h-[75vh]">
+<div class="container mx-auto px-4 py-10 grid md:grid-cols-3 gap-6">
+  <section class="md:col-span-1 bg-white rounded-2xl shadow p-6">
+    <h1 class="text-2xl font-bold mb-4">Profile</h1>
+    <div id="info" class="text-slate-700"></div>
+  </section>
+  <section class="md:col-span-2 bg-white rounded-2xl shadow p-6">
+    <h2 class="text-xl font-semibold mb-4">Certificates</h2>
+    <ul id="certs" class="space-y-3"></ul>
+  </section>
+</div>
+</main>
+<script src="assets/js/api.js"></script>
+<script>
+(async function(){
+  const user = JSON.parse(localStorage.getItem('user')||'null');
+  if(!user){ location.href = '/frontend/login.html'; return; }
+  info.innerHTML = `<div class="font-medium text-slate-900">${user.name}</div>
+  <div class="text-sm text-slate-600">${user.email}</div>
+  <div class="text-xs uppercase bg-gray-100 inline-block mt-2 px-2 py-0.5 rounded">${user.role}</div>`;
+  try{
+    const list = await apiFetch('/api/certificates/my');
+    certs.innerHTML = list.length? list.map(c=>`<li class="border rounded p-3 flex items-center justify-between">
+      <div>
+        <div class="font-medium">Certificate</div>
+        <div class="text-sm text-slate-600">Issued at: ${new Date(c.issuedAt||Date.now()).toLocaleString()}</div>
+      </div>
+      <a class="bg-blue-600 text-white rounded px-3 py-1" href="${'/api/certificates/'+c.id+'/download'}" target="_blank">Download</a>
+    </li>`).join('') : '<li class="text-slate-500">No certificates yet.</li>';
+  }catch(e){ console.log(e); }
+})();
+</script>
+<script>renderFooter();</script>
+</body></html>

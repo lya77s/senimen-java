@@ -1,0 +1,39 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Register - Senimen</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/style.css"></head>
+<body class="bg-gray-50">
+<script src="assets/js/auth.js"></script>
+<script>renderNavbar();</script>
+<main class="min-h-[75vh] flex items-start justify-center">
+  <div class="max-w-lg w-full mx-auto mt-16 bg-white shadow rounded-2xl p-10">
+    <h1 class="text-4xl font-extrabold mb-6">Create your account</h1>
+    <form id="regForm" class="space-y-5">
+      <input class="w-full border rounded p-4 text-base" name="name" placeholder="Name" required />
+      <input class="w-full border rounded p-4 text-base" name="email" placeholder="Email" required />
+      <input class="w-full border rounded p-4 text-base" name="password" placeholder="Password" type="password" required />
+      <select class="w-full border rounded p-4 text-base" name="role">
+        <option value="volunteer">Volunteer</option>
+        <option value="organizer">Organizer</option>
+      </select>
+      <button class="w-full bg-blue-600 text-white rounded-xl p-4 text-lg" type="submit">Create account</button>
+      <div id="msg" class="text-sm"></div>
+    </form>
+  </div>
+</main>
+<script src="assets/js/api.js"></script>
+<script>
+const form = document.getElementById('regForm');
+form.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(form).entries());
+  try{
+    const res = await fetch(apiBase+'/api/auth/register',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)});
+    const msg = document.getElementById('msg');
+    if(!res.ok){ msg.className='text-red-600 text-sm'; msg.textContent = 'Registration error. Try another email.'; return; }
+    msg.className='text-green-600 text-sm'; msg.textContent = 'Registered! You can login now.';
+  }catch(err){ const msg=document.getElementById('msg'); msg.className='text-red-600 text-sm'; msg.textContent = 'Error'; }
+});
+</script>
+<script>renderFooter();</script>
+</body></html>

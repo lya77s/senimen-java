@@ -1,0 +1,62 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Events - Senimen</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/style.css"></head>
+<body class="bg-gray-50">
+<script src="assets/js/auth.js"></script>
+<script>renderNavbar();</script>
+<main class="min-h-[75vh]">
+<div class="container mx-auto px-4 py-10">
+<h1 class="text-3xl font-bold mb-6">Events</h1>
+<div class="bg-white p-4 rounded shadow mb-6 grid md:grid-cols-5 gap-3">
+  <input class="border rounded p-2" id="city" placeholder="City" />
+  <input class="border rounded p-2" id="dateFrom" type="date" />
+  <input class="border rounded p-2" id="dateTo" type="date" />
+  <input class="border rounded p-2" id="tags" placeholder="tag1,tag2" />
+  <button class="bg-blue-600 text-white rounded-lg px-5 py-3 text-base" id="filterBtn">Filter</button>
+</div>
+<div class="bg-white rounded-2xl shadow p-6">
+  <h2 class="text-xl font-bold mb-4">All Events</h2>
+  <div id="msg" class="hidden mb-4"></div>
+  <ul id="list" class="grid md:grid-cols-2 gap-4"></ul>
+</div>
+</div>
+</main>
+<script src="assets/js/api.js"></script>
+<script>
+async function load(){
+  const params = new URLSearchParams();
+  if(city.value) params.append('city', city.value);
+  if(dateFrom.value) params.append('dateFrom', dateFrom.value);
+  if(dateTo.value) params.append('dateTo', dateTo.value);
+  if(tags.value) params.append('tags', tags.value);
+  const events = await apiFetch('/api/events'+(params.toString()?`?${params}`:''));
+  list.innerHTML = events.map(e => `<li class="bg-white rounded shadow p-5">
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="text-lg font-medium text-slate-900">${e.title}</div>
+        <div class="text-sm text-slate-600">${new Date(e.date).toLocaleDateString()} • ${e.location?.city||''}</div>
+      </div>
+      <span class="text-xs uppercase bg-gray-100 rounded px-2 py-1">${e.status||'active'}</span>
+    </div>
+    <p class="mt-3 text-slate-700">${e.description||''}</p>
+    <div class="mt-3 flex items-center justify-between">
+      <div class="text-xs text-slate-500">Tags: ${(e.tags||[]).join(', ')}</div>
+      <button class="bg-blue-600 text-white rounded-lg px-4 py-2 text-base" onclick=\"apply('${e.id}')\">Apply</button>
+    </div>
+  </li>`).join('');
+}
+async function apply(eventId){
+  try{
+    await apiFetch('/api/applications',{method:'POST', body: JSON.stringify({eventId, volunteerId: JSON.parse(localStorage.getItem('user')||'{}').id})});
+    msg.className = 'mb-4 p-3 rounded bg-green-50 text-green-700';
+    msg.textContent = 'Application submitted!';
+  }catch(e){
+    if(e.status===401){ location.href='/frontend/login.html'; }
+    else { msg.className = 'mb-4 p-3 rounded bg-red-50 text-red-700'; msg.textContent = 'Error submitting application'; }
+  }
+}
+filterBtn.onclick=load; load();
+</script>
+<script>renderFooter();</script>
+</body></html>
